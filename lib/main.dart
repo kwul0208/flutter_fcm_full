@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_fcm/DemoScreen.dart';
 import 'package:flutter_fcm/notificationservice/local_notification_service.dart';
 import 'package:overlay_support/overlay_support.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 Future<void> backgroundHandler(RemoteMessage message) async {
   	print(message.data.toString());
@@ -51,7 +53,10 @@ class _HomePageState extends State {
 
     // 1. This method call when app in terminated state and you get a notification
     // when you click on notification app open from terminated state and you can get notification data in this method
+    tz.initializeTimeZones();
     LocalNotificationService.initialize(context);
+    // LocalNotificationService.scheduleNotification('schedule', 'yes');
+    LocalNotificationService.scheduleWeekdayNotification(context);
 
     subcribe();
 
