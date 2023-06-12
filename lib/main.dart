@@ -56,7 +56,7 @@ class _HomePageState extends State {
     tz.initializeTimeZones();
     LocalNotificationService.initialize(context);
     // LocalNotificationService.scheduleNotification('schedule', 'yes');
-    LocalNotificationService.scheduleWeekdayNotification(context);
+    LocalNotificationService.scheduleDailyNotification();
 
     subcribe();
 

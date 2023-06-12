@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_fcm/DemoScreen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 class LocalNotificationService{
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -61,152 +67,73 @@ class LocalNotificationService{
     }
   }
 
-  // static void scheduleNotification(title, body) async {
-  //   try {
-  //     final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  //     const NotificationDetails notificationDetails = NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         "pushnotificationapp",
-  //         "pushnotificationappchannel",
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //       ),
-  //     );
-  //     print('show');
-  //     await _notificationsPlugin.zonedSchedule(
-  //       id,
-  //       "message.notification!.title",
-  //       "message.notification!.body",
-  //       tz.TZDateTime.now(tz.local).add(Duration(
-  //         seconds: 1)),
-  //       notificationDetails,
-  //       uiLocalNotificationDateInterpretation:
-  //         UILocalNotificationDateInterpretation.absoluteTime,
-  //     androidAllowWhileIdle:
-  //         true,
-  //     );
-  //   } on Exception catch (e) {
-  //     print(e);
-  //   }
-  // }
-
-  // static Future<void> scheduleDailyNotification() async {
-  //   const AndroidNotificationDetails androidPlatformChannelSpecifics =
-  //       AndroidNotificationDetails(
-  //           'your_channel_id', 'your_channel_name',
-  //           importance: Importance.max,
-  //           priority: Priority.high,
-  //           showWhen: false);
-
-  //   const NotificationDetails platformChannelSpecifics =
-  //       NotificationDetails(android: androidPlatformChannelSpecifics);
-
-  //   tz.initializeTimeZones();
-  //   final String timeZoneName = tz.local.name;
-  //   tz.setLocalLocation(tz.getLocation(timeZoneName));
-
-  //   await _notificationsPlugin.zonedSchedule(
-  //       0,
-  //       'Judul Notifikasi',
-  //       'Isi Notifikasi',
-  //       _nextInstanceOfNineAM(),
-  //       platformChannelSpecifics,
-  //       androidAllowWhileIdle: true,
-  //       uiLocalNotificationDateInterpretation:
-  //           UILocalNotificationDateInterpretation.absoluteTime);
-  // }
-
-  static tz.TZDateTime _nextInstanceOfNineAM() {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, 9);
-
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-
-    return scheduledDate;
-  }
-
-  // static scheduleDailyNotification() async {
-  //   try {
-  //     const AndroidNotificationDetails androidPlatformChannelSpecifics =
-  //         AndroidNotificationDetails(
-  //       'channel_id',
-  //       'channel_name',
-  //       // 'channel_description',
-  //       importance: Importance.max,
-  //       priority: Priority.high,
-  //     );
-
-  //     const NotificationDetails platformChannelSpecifics =
-  //         NotificationDetails(android: androidPlatformChannelSpecifics);
-
-  //     await _notificationsPlugin.showDailyAtTime(
-  //       0,
-  //       'Judul Notifikasi',
-  //       'Pesan Notifikasi',
-  //       Time(20, 42, 0),
-  //       platformChannelSpecifics,
-  //     );
-  //   } catch (e) {
-  //     print(e);
-  //   }
-  // }
-
-  static Future<void> scheduleWeekdayNotification(BuildContext context) async {
+ 
+  static Future<void> scheduleDailyNotification() async {
     try {
-        const AndroidNotificationDetails androidPlatformChannelSpecifics =
-          AndroidNotificationDetails(
-              'weekday_channel_id',
-              'Weekday Channel',
-              // 'Channel for weekday notifications',
-              importance: Importance.max,
-              priority: Priority.high,
-              sound: RawResourceAndroidNotificationSound('notification_sound'),
-              playSound: true,
-              enableVibration: true);
-      const IOSNotificationDetails iOSPlatformChannelSpecifics =
-          IOSNotificationDetails();
-      const NotificationDetails platformChannelSpecifics = NotificationDetails(
-          android: androidPlatformChannelSpecifics,
-          iOS: iOSPlatformChannelSpecifics);
+     // Konfigurasi plugin notifikasi lokal
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
-      // Menghitung durasi hingga pukul 09:00 berikutnya
+      final InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
+
+      await _notificationsPlugin.initialize(initializationSettings);
+
+      // Set timezone agar notifikasi sesuai dengan waktu lokal
       tz.initializeTimeZones();
-      final now = DateTime.now();
-      final nextNotificationTime = DateTime(now.year, now.month, now.day, 9);
-      tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 9);
-      if (scheduledDate.isBefore(now)) {
-        // Jika waktu notifikasi sudah lewat hari ini, maka jadwalkan untuk besok
-        scheduledDate.add(const Duration(days: 1));
-      }
+      tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
+      print("---sini");
 
-      // Mengatur jadwal notifikasi pada hari kerja (Senin-Jumat) pada pukul 09:00
-      for (int i = 1; i <= 5; i++) {
-        // 1 = Senin, 2 = Selasa, dst.
-        if (scheduledDate.weekday == i) {
-          await _notificationsPlugin.zonedSchedule(
-              i,
-              'Judul Notifikasi',
-              'Isi notifikasi',
-              scheduledDate,
-              platformChannelSpecifics,
-              uiLocalNotificationDateInterpretation:
-                  UILocalNotificationDateInterpretation.absoluteTime,
-              androidAllowWhileIdle: true);
+      // Logika pengecekan dan tampilan notifikasi
+      Timer.periodic(const Duration(minutes: 1), (timer) async {
+        final DateTime now = DateTime.now();
+        final DateTime scheduledDate =
+            tz.TZDateTime(tz.local, now.year, now.month, now.day, 9);
+            print(scheduledDate);
+
+        if (now.isAfter(scheduledDate)) {
+          // Panggil fungsi fetchDataFromAPI untuk memeriksa API
+          bool hasData = await fetchDataFromAPI();
+          print("fetch");
+
+          if (hasData) {
+            // Panggil fungsi showNotification jika API mengembalikan data
+            await showNotification(hasData);
+          }
         }
-      }
+      });
+      
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${e}'),
-        duration: const Duration(seconds: 10),
-        action: SnackBarAction(
-          label: 'ACTION',
-          onPressed: () { },
-        ),
-      ));
+      print(e);
     }
-    
-  }
+}
+
+static Future<void> showNotification(data) async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+    'your_channel_id',
+    'your_channel_name',
+    // 'your_channel_description',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await _notificationsPlugin.show(
+    0,
+    'Judul Notifikasi',
+    'Konten $data',
+    platformChannelSpecifics,
+  );
+}
+
+static Future<bool> fetchDataFromAPI() async {
+  return true;
+  // Panggil API dan ambil data
+  // Lakukan pemrosesan data sesuai kebutuhan Anda
+  // Misalnya, jika data ada, return true; jika tidak, return false
+}
+
 }
